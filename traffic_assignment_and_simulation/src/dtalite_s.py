@@ -164,7 +164,7 @@ def g_ReadInputData():
     print('the number of nodes is',g_number_of_nodes)
 
     #read input_link
-    with open('road_link.csv','r',encoding='utf-8') as fp:
+    with open('link.csv','r',encoding='utf-8') as fp:
         reader=csv.DictReader(fp)
         for line in reader:
             link=Link(line['from_node_id'],line['to_node_id'],
@@ -178,7 +178,7 @@ def g_ReadInputData():
     print('the number of links is',g_number_of_links)
 
     #read input_agent
-    with open('agent.csv','r',encoding='utf-8') as fp:
+    with open('input_agent.csv','r',encoding='utf-8') as fp:
         reader=csv.DictReader(fp)
         for line in reader:
             agent=Agent(line['agent_id'],line["agent_type"],line['o_node_id'],
@@ -334,7 +334,16 @@ def g_TrafficAssignment():
             for k in range(g_number_of_links):
                 g_link_list[k].flow_volume = 0.0
                 g_link_list[k].flow_volume += network.link_volume_array[k]
-
+def time_stamp_to_HHMMSS(time_in_minutes):
+    hours=int(time_in_minutes/60)
+    minutes=int(time_in_minutes-hours*60)
+    seconds=int((time_in_minutes-hours*60-minutes)*60)
+    return time_int_to_str(hours)+time_int_to_str(minutes)+":"+time_int_to_str(seconds)
+def time_int_to_str(time_int):
+    if time_int<10:
+        return "0"+str(time_int)
+    else:
+        return str(time_int)
 def g_TrafficSimulation():
     global g_TotalCumulative_Arrival_Count
     global g_TotalCumulative_Departure_Count
@@ -415,7 +424,7 @@ def g_TrafficSimulation():
         
         
 def g_OutputFiles():
-    with open ('output_LinkMOE.csv','w',newline='') as fp:
+    with open ('link_performance.csv','w',newline='') as fp:
         writer=csv.writer(fp)
         line=["o_node_id","d_node_id","cumulative_arrival_count","cumulative_departure_count",
               "travel_time_in_min"]
@@ -427,9 +436,9 @@ def g_OutputFiles():
                 line=[link.extern_from_node,link.extern_to_node,link.m_LinkCumulativeArrival[relative_time_interval],
                       link.m_LinkCumulativeDeparture[relative_time_interval],link.travel_time]
                 writer.writerow(line)
-    with open("output_agent.csv","w",newline='') as fp:
+    with open("agent.csv","w",newline='') as fp:
         writer=csv.writer(fp)
-        line=["agent_id","agent_type","o_node_id","d_node_id","cost","departure_time_in_min",
+        line=["agent_id","agent_type","o_node_id","d_node_id","o_zone_id","d_zone_id","travel_time",
               "node_sequence","time_sequence"]
         writer.writerow(line)
         for agent in g_agent_list:
@@ -442,16 +451,17 @@ def g_OutputFiles():
                 TA_in_min=agent.m_Veh_LinkArrivalTime_in_simu_interval[i]* g_number_of_seconds_per_interval / 60.0
                 TD_in_min=agent.m_Veh_LinkDepartureTime_in_simu_interval[i]* g_number_of_seconds_per_interval / 60.0
                 if(i==0):
-                    path_time_list.extend([str(TA_in_min),str(TD_in_min)])
+                    path_time_list.extend([time_stamp_to_HHMMSS(TA_in_min),time_stamp_to_HHMMSS(TD_in_min)])
                 else:
-                    path_time_list.append(str(TD_in_min))
+                    path_time_list.append(time_stamp_to_HHMMSS(TD_in_min))
                 path_time_sequence=';'.join(path_time_list)
             path_node_str=';'.join([str(i) for i in agent.path_node_seq_no_list])
             line=[agent.agent_id,agent.agent_service_type,agent.from_origin_node_id,
-                  agent.to_destination_node_id,cost,agent.departure_time_in_min,
+                  agent.to_destination_node_id,agent.from_origin_node_id,
+                  agent.to_destination_node_id,cost,
                   path_node_str,path_time_sequence]
             writer.writerow(line)
-    with open("output_solution.csv",'w',newline='') as fp:
+    with open("solution.csv",'w',newline='') as fp:
         writer=csv.writer(fp)
         line=["number_of_nodes","number_of_links","number_of_agents","CPU running time"]
         writer.writerow(line)
